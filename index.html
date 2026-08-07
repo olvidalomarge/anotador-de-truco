@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   html, body { margin: 0; padding: 0; }
   body {
     height: 100vh;
@@ -228,6 +228,20 @@
     box-shadow: 0 3px 12px rgba(0,0,0,0.4);
   }
   #btn-fondo:active { transform: scale(0.92); }
+  #btn-fullscreen {
+    position: fixed; z-index: 5;
+    left: calc(10px + env(safe-area-inset-left));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 1px solid rgba(245,239,224,0.4);
+    background: rgba(13,43,30,0.55); color: #F5EFE0;
+    font-size: 22px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+  }
+  #btn-fullscreen:active { transform: scale(0.92); }
+  #btn-fullscreen.oculto { display: none; }
   #btn-sonido {
     background: transparent; border: none; cursor: pointer;
     font-size: 18px; line-height: 1; padding: 4px 6px; border-radius: 8px;
@@ -294,6 +308,7 @@
 <div id="capa-fondo"></div>
 <div id="capa-oscura"></div>
 <button id="btn-fondo" aria-label="Cambiar fondo">→</button>
+<button id="btn-fullscreen" aria-label="Pantalla completa">⛶</button>
 <div class="contenedor">
   <header>
     <div style="display: flex; align-items: center; gap: 4px;">
@@ -490,6 +505,42 @@
 
   btnFondo.addEventListener("click", siguienteFondo);
   // El fondo inicial lo aplica aplicarModo() al final, según el modo activo.
+
+  // ---- Pantalla completa ----
+  // Oculta la barra de direcciones del navegador en Android/desktop.
+  // En iPhone, Safari no soporta la Fullscreen API para páginas web
+  // (solo para <video>), así que el botón queda oculto automáticamente ahí.
+  const btnFullscreen = document.getElementById("btn-fullscreen");
+  function elementoFullscreen() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  function pedirFullscreen(el) {
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!fn) return;
+    const resultado = fn.call(el);
+    if (resultado && resultado.catch) resultado.catch(() => {});
+  }
+  function salirFullscreen() {
+    const fn = document.exitFullscreen || document.webkitExitFullscreen;
+    if (fn) fn.call(document);
+  }
+  function pintarBotonFullscreen() {
+    const activo = !!elementoFullscreen();
+    btnFullscreen.textContent = activo ? "⤢" : "⛶";
+    btnFullscreen.setAttribute("aria-label", activo ? "Salir de pantalla completa" : "Pantalla completa");
+  }
+  const soportaFullscreen = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  const yaEsStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (!soportaFullscreen || yaEsStandalone) {
+    btnFullscreen.classList.add("oculto");
+  } else {
+    btnFullscreen.addEventListener("click", () => {
+      if (elementoFullscreen()) salirFullscreen();
+      else pedirFullscreen(document.documentElement);
+    });
+    document.addEventListener("fullscreenchange", pintarBotonFullscreen);
+    document.addEventListener("webkitfullscreenchange", pintarBotonFullscreen);
+  }
 
   // ---- Sonido al sumar punto ----
   const audioPunto = document.getElementById("audio-punto");
