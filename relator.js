@@ -4,7 +4,7 @@ const RelatoTruco = (() => {
     inicio30: { archivo: "inicio-30", texto: "¡Está todo listo! Arranca el partido a treinta." },
     inicio: { archivo: "inicio", texto: "¡Se mezclan las cartas! ¡Arranca el truco!" },
     uno: { archivo: "un-punto", texto: "¡Un puntito nomás! ¡Más miedo que cartas!", cantidad: 1 },
-    cuatro: { archivo: "cuatro-puntos", texto: "¡Llegan a cuatro puntos! ¡Se mueve el tanteador!" },
+    cuatro: { archivo: "cuatro-puntos", texto: "¡Llegan a cuatro puntos! ¡Se mueve el tanteador!", cantidad: 4 },
     empate: { archivo: "empate", texto: "¡Palo y palo!" },
     partidazo: { archivo: "partidazo", texto: "¡Qué partidazo! ¡El marcador no da respiro!" },
     ventaja: { archivo: "ventaja", texto: "¡Sacan ventaja! ¡Y empiezan a meter presión!" },
@@ -22,6 +22,10 @@ const RelatoTruco = (() => {
     const diferencia = puntos - despues[otro];
     const diferenciaAnterior = antes[equipo] - antes[otro];
     if (puntos <= antes[equipo] || despues.some((p) => p >= objetivo)) return null;
+    // La cantidad pertenece a la mano completa. Se puede repetir a cualquier altura de la partida.
+    const cantidad = puntos - antes[equipo];
+    const porCantidad = Object.keys(clips).find((nombre) => clips[nombre].cantidad === cantidad);
+    if (porCantidad) return porCantidad;
     if (puntos === objetivo - 1) return "ultimo";
     if (puntos >= objetivo - 5 && antes[equipo] < objetivo - 5) return "rectaFinal";
     if (objetivo === 30 && antes[equipo] <= 15 && puntos > 15) return "buenas";
@@ -31,11 +35,6 @@ const RelatoTruco = (() => {
     if (diferencia >= 3 && diferenciaAnterior < 3) return "ventaja";
     if (diferencia === -1 && diferenciaAnterior <= -2) return "volvieron";
     if (diferencia === -3 && diferenciaAnterior <= -4) return "descuentan";
-    if (puntos === 4) return "cuatro";
-    // Los clips por cantidad describen lo sumado en esta mano, no el total.
-    const cantidad = puntos - antes[equipo];
-    const porCantidad = Object.keys(clips).find((nombre) => clips[nombre].cantidad === cantidad);
-    if (porCantidad) return porCantidad;
     return null;
   }
 

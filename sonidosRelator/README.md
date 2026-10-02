@@ -2,7 +2,9 @@
 
 El relator espera 1,5 segundos desde el último punto anotado. Los toques consecutivos forman una mano: compara el marcador anterior al primer toque con el marcador final. Corregir, deshacer, silenciar, desactivar el relator o iniciar otra partida cancela lo pendiente.
 
-Las frases sobre situaciones importantes (último punto, buenas, remontada, etc.) tienen prioridad. Si no hay una situación especial, puede usar un clip para la cantidad sumada en la mano. El audio «un puntito» se usa únicamente cuando se sumó un punto, aunque el marcador ya sea mayor que uno.
+Los audios de cantidades tienen prioridad y se pueden repetir en cada mano, a cualquier altura de la partida. «Un puntito» corresponde a sumar uno; el audio de cuatro corresponde a sumar cuatro en la misma mano, aunque el marcador pase de siete a once. Llegar a un total de cuatro sumando uno no dispara el audio de cuatro.
+
+Si no hay un clip para la cantidad sumada, se evalúan las situaciones del marcador (último punto, buenas, remontada, empate, etc.). Al alcanzar el objetivo, se mantiene el festejo de victoria.
 
 Para añadir un audio de dos puntos:
 

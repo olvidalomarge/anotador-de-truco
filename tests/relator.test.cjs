@@ -7,18 +7,24 @@ const relator = vm.runInNewContext(fs.readFileSync(path.join(root, "relator.js")
 
 const casos = [
   ["primer punto", [0, 0], [1, 0], 0, 30, [], "uno"],
-  ["cuatro puntos", [3, 2], [4, 2], 0, 30, [], "cuatro"],
-  ["empate de Ellos", [3, 2], [3, 3], 1, 30, [], "empate"],
-  ["ventaja", [4, 2], [5, 2], 0, 30, [], "ventaja"],
-  ["descuento", [2, 6], [3, 6], 0, 30, [], "descuentan"],
-  ["regreso", [3, 5], [4, 5], 0, 30, [], "volvieron"],
-  ["remontada después de empate", [5, 5], [6, 5], 0, 30, [[3, 5], [4, 5]], "remontada"],
+  ["llegar a cuatro con uno no relata cuatro", [3, 2], [4, 2], 0, 30, [], "uno"],
+  ["cuatro en una mano desde cero", [0, 0], [4, 0], 0, 30, [], "cuatro"],
+  ["cuatro en una mano con marcador avanzado", [7, 2], [11, 2], 0, 30, [], "cuatro"],
+  ["llegar a cuatro con dos no relata cuatro", [2, 0], [4, 0], 0, 30, [], "ventaja"],
+  ["un punto en la siguiente mano se repite", [1, 0], [2, 0], 0, 30, [], "uno"],
+  ["un punto al empatar sigue siendo un punto", [3, 2], [3, 3], 1, 30, [], "uno"],
+  ["un punto cerca del final sigue siendo un punto", [28, 20], [29, 20], 0, 30, [], "uno"],
+  ["empate cuando no hay clip para dos", [5, 3], [5, 5], 1, 30, [], "empate"],
+  ["ventaja cuando no hay clip para dos", [4, 2], [6, 2], 0, 30, [], "ventaja"],
+  ["descuento", [1, 6], [3, 6], 0, 30, [], "descuentan"],
+  ["regreso", [2, 5], [4, 5], 0, 30, [], "volvieron"],
+  ["remontada", [4, 5], [6, 5], 0, 30, [[3, 5]], "remontada"],
   ["primera ventaja sin remontada", [5, 5], [6, 5], 0, 30, [[5, 4]], "uno"],
-  ["buenas", [15, 10], [16, 10], 0, 30, [], "buenas"],
-  ["recta final a 30", [24, 12], [25, 12], 0, 30, [], "rectaFinal"],
-  ["recta final a 15", [9, 5], [10, 5], 0, 15, [], "rectaFinal"],
-  ["punto de partido a 30", [28, 20], [29, 20], 0, 30, [], "ultimo"],
-  ["punto de partido a 15", [10, 13], [10, 14], 1, 15, [], "ultimo"],
+  ["buenas", [14, 10], [16, 10], 0, 30, [], "buenas"],
+  ["recta final a 30", [23, 12], [25, 12], 0, 30, [], "rectaFinal"],
+  ["recta final a 15", [8, 5], [10, 5], 0, 15, [], "rectaFinal"],
+  ["punto de partido a 30", [27, 20], [29, 20], 0, 30, [], "ultimo"],
+  ["punto de partido a 15", [10, 12], [10, 14], 1, 15, [], "ultimo"],
   ["victoria a 15 sin malas/buenas", [14, 10], [15, 10], 0, 15, [], null],
   ["victoria a 30 sin otro relato", [12, 29], [12, 30], 1, 30, [], null],
   ["restar no relata", [10, 8], [9, 8], 0, 30, [], null],
@@ -39,6 +45,8 @@ for (const clip of Object.values(relator.clips)) {
 relator.clips.dos = { archivo: "dos-puntos", texto: "¡Dos puntos!", cantidad: 2 };
 assert.equal(relator.elegir([0, 0], [2, 0], 0, 30), "dos");
 assert.equal(relator.elegir([7, 2], [9, 2], 0, 30), "dos");
+assert.equal(relator.elegir([5, 3], [5, 5], 1, 30), "dos", "la cantidad tiene prioridad aunque haya empate");
+assert.equal(relator.elegir([2, 0], [4, 0], 0, 30), "dos", "no confundir la suma de dos con un total de cuatro");
 delete relator.clips.dos;
 
 function relojDePrueba() {
