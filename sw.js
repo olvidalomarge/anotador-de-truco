@@ -1,4 +1,4 @@
-const CACHE = "truco-v14";
+const CACHE = "truco-v16";
 // Los fondos NO se listan acá: la lista es dinámica (carpeta "fondos/") y
 // se cachean solos la primera vez que se muestran. Si se listara un archivo
 // que ya no existe, la instalación del service worker fallaría entera.
@@ -6,6 +6,20 @@ const CACHE = "truco-v14";
 const ARCHIVOS = [
   "./",
   "./index.html",
+  "./relator.js",
+  "./sonidosRelator/inicio-30.mp3",
+  "./sonidosRelator/inicio.mp3",
+  "./sonidosRelator/un-punto.mp3",
+  "./sonidosRelator/cuatro-puntos.mp3",
+  "./sonidosRelator/empate.mp3",
+  "./sonidosRelator/partidazo.mp3",
+  "./sonidosRelator/ventaja.mp3",
+  "./sonidosRelator/descuentan.mp3",
+  "./sonidosRelator/volvieron.mp3",
+  "./sonidosRelator/remontada.mp3",
+  "./sonidosRelator/buenas.mp3",
+  "./sonidosRelator/recta-final.mp3",
+  "./sonidosRelator/ultimo-punto.mp3",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

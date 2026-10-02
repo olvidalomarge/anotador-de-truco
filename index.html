@@ -46,10 +46,11 @@
   }
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(4px, 1vh, 10px); flex: 0 0 auto; }
   h1 { margin: 0; font-size: clamp(17px, 2.6vh, 22px); font-weight: 800; letter-spacing: 0.06em; }
-  .meta-30 {
+  .meta-objetivo {
     padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
     border: 1px solid rgba(245,239,224,0.35); color: #F5EFE0;
     font-family: system-ui, sans-serif; letter-spacing: 0.04em;
+    background: #143D2B; cursor: pointer;
   }
   #btn-icono {
     display: flex; align-items: center; justify-content: center;
@@ -82,11 +83,14 @@
     flex: 0 0 auto;
   }
   .cuadros {
+    border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer;
     flex: 1 1 auto; min-height: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: clamp(3px, 0.8vh, 6px);
     width: 100%; margin-top: clamp(2px, 0.8vh, 6px);
   }
+  .cuadros:focus-visible { outline: 2px solid #E9C893; outline-offset: 2px; border-radius: 10px; }
+  .cuadros:disabled { opacity: 1; }
   .cuadro {
     flex: 1 1 0; min-height: 0;
     aspect-ratio: 1; width: auto;
@@ -122,6 +126,15 @@
     text-transform: uppercase; cursor: pointer;
   }
   body.maxpawer-activo .ir-sonidos { display: block; }
+  .relator-controles { flex: 0 0 auto; text-align: center; margin-top: 8px; }
+  #btn-relator {
+    border: 1px solid rgba(245,239,224,0.35); border-radius: 10px;
+    padding: 6px 12px; color: #F5EFE0; background: transparent;
+    font: 600 12px system-ui, sans-serif; cursor: pointer;
+  }
+  #btn-relator[aria-pressed="true"] { background: #143D2B; border-color: #E9C893; }
+  #texto-relator { display: block; min-height: 2.6em; margin: 5px 0 0;
+    font: 12px/1.3 system-ui, sans-serif; color: #E9C893; }
 
   /* ---- Segunda pantalla MAX PAWER: botonera de sonidos ---- */
   .pantalla-sonidos { display: none; }
@@ -204,6 +217,9 @@
     border: none; background: #C1440E; color: #FFF6E8; cursor: pointer;
     box-shadow: 0 3px 0 #7d2b07;
   }
+  #confirmacion { color: #F5EFE0; }
+  #confirmacion::backdrop { background: rgba(10,25,18,0.88); }
+  #mensajeConfirmacion { line-height: 1.5; }
   /* ---- Fondo de pantalla ---- */
   #capa-fondo {
     position: fixed; inset: 0; z-index: -2;
@@ -297,6 +313,7 @@
 </style>
 </head>
 <body>
+<audio id="audio-relator" preload="none"></audio>
 <audio id="audio-punto" preload="auto">
   <source src="sonidos/punto.m4a" type="audio/mp4">
   <source src="sonidos/punto.mp3" type="audio/mpeg">
@@ -317,7 +334,10 @@
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
       <button id="btn-icono" aria-label="Cambiar estilo de los puntos"></button>
-      <div class="meta-30">a 30</div>
+      <select class="meta-objetivo" id="objetivo" aria-label="Puntos para ganar">
+        <option value="15">a 15</option>
+        <option value="30" selected>a 30</option>
+      </select>
     </div>
   </header>
 
@@ -326,7 +346,7 @@
       <input id="nombre0" maxlength="12" value="Nosotros" aria-label="Nombre del equipo 1">
       <div class="puntaje" id="puntaje0">0</div>
       <div class="fase" id="fase0">malas</div>
-      <div class="cuadros" id="cuadros0"></div>
+      <button type="button" class="cuadros" id="cuadros0" aria-label="Sumar un punto a Nosotros"></button>
       <div class="controles">
         <button class="btn-menos" id="menos0" aria-label="Restar punto">−</button>
         <button class="btn-mas" id="mas0" aria-label="Sumar punto">+1</button>
@@ -337,7 +357,7 @@
       <input id="nombre1" maxlength="12" value="Ellos" aria-label="Nombre del equipo 2">
       <div class="puntaje" id="puntaje1">0</div>
       <div class="fase" id="fase1">malas</div>
-      <div class="cuadros" id="cuadros1"></div>
+      <button type="button" class="cuadros" id="cuadros1" aria-label="Sumar un punto a Ellos"></button>
       <div class="controles">
         <button class="btn-menos" id="menos1" aria-label="Restar punto">−</button>
         <button class="btn-mas" id="mas1" aria-label="Sumar punto">+1</button>
@@ -351,6 +371,10 @@
     <button id="nueva">Nueva partida</button>
   </div>
   <button class="ir-sonidos" id="ir-sonidos" type="button">Desliz&aacute; para sonidos &darr;</button>
+  <div class="relator-controles">
+    <button type="button" id="btn-relator" aria-pressed="false">🎙 Activar relator</button>
+    <span id="texto-relator" aria-live="polite"></span>
+  </div>
 </div>
 
 <section class="pantalla-sonidos" id="pantalla-sonidos" aria-labelledby="titulo-sonidos">
@@ -393,6 +417,16 @@
   </div>
 </div>
 
+<dialog class="tarjeta" id="confirmacion" aria-labelledby="tituloConfirmacion" aria-describedby="mensajeConfirmacion">
+  <div class="titulo" id="tituloConfirmacion">Nueva partida</div>
+  <p id="mensajeConfirmacion"></p>
+  <div class="botones">
+    <button type="button" class="secundario" id="cancelarNueva" autofocus>Cancelar</button>
+    <button type="button" class="primario" id="confirmarNueva">Confirmar</button>
+  </div>
+</dialog>
+
+<script src="relator.js"></script>
 <script>
 (function () {
   // ===================================================================
@@ -428,6 +462,7 @@
     historial: [],
     fondo: 0,
     silenciado: false,
+    relator: false,
     icono: "fosforos",
   };
 
@@ -435,7 +470,7 @@
     const guardado = JSON.parse(localStorage.getItem(CLAVE));
     if (guardado && Array.isArray(guardado.puntos)) estado = Object.assign(estado, guardado);
   } catch (e) { /* estado por defecto */ }
-  estado.objetivo = 30; // el juego siempre es a 30, sin excepción
+  if (estado.objetivo !== 15 && estado.objetivo !== 30) estado.objetivo = 30;
 
   // ===================================================================
   //  HOME Y VERSIÓN MAX PAWER
@@ -610,6 +645,7 @@
   }
 
   function reproducirSonido(sonido, boton) {
+    detenerRelator();
     detenerBotonera();
     audioPunto.pause();
     audioVictoria.pause();
@@ -665,6 +701,7 @@
 
   function sonarPunto() {
     if (!modoPrivado || estado.silenciado) return;
+    if (!audioRelator.paused) return;
     try {
       audioPunto.currentTime = 0;      // reiniciar por si suena rápido seguido
       audioPunto.play().catch(() => {}); // ignorar si el navegador lo bloquea
@@ -672,7 +709,8 @@
   }
 
   function sonarVictoria() {
-    if (!modoPrivado || estado.silenciado) return;
+    detenerRelator();
+    if ((!modoPrivado && !estado.relator) || estado.silenciado) return;
     try {
       audioPunto.pause();              // cortar el sonido del punto que dispara la victoria
       audioVictoria.currentTime = 0;
@@ -682,10 +720,75 @@
 
   btnSonido.addEventListener("click", () => {
     estado.silenciado = !estado.silenciado;
+    if (estado.silenciado) {
+      detenerRelator();
+      audioPunto.pause();
+      audioVictoria.pause();
+      detenerBotonera();
+    }
     pintarBotonSonido();
     guardar();
   });
   pintarBotonSonido();
+
+  // ---- Relato con los MP3 aportados ----
+  const audioRelator = document.getElementById("audio-relator");
+  const btnRelator = document.getElementById("btn-relator");
+  const textoRelator = document.getElementById("texto-relator");
+  const turnosRelato = {};
+  let ultimoRelato = 0;
+
+  function pintarRelator() {
+    btnRelator.setAttribute("aria-pressed", String(estado.relator));
+    btnRelator.textContent = estado.relator ? "🎙 Desactivar relator" : "🎙 Activar relator";
+  }
+
+  function detenerRelator() {
+    audioRelator.pause();
+    textoRelator.textContent = "";
+  }
+
+  function relatar(evento, prioritario = false) {
+    if (!estado.relator || estado.silenciado || !evento) return;
+    // No acumular relatos atrasados ni interrumpir frases por cada toque.
+    if (!prioritario && (!audioRelator.paused || Date.now() - ultimoRelato < 3500)) return;
+    const opciones = evento === "empate" ? ["empate", "partidazo"] :
+      (evento === "inicio" && estado.objetivo === 30 ? ["inicio30", "inicio"] : [evento]);
+    const turno = turnosRelato[evento] || 0;
+    const clip = RelatoTruco.clips[opciones[turno % opciones.length]];
+    if (!clip) return;
+    turnosRelato[evento] = turno + 1;
+    detenerRelator();
+    detenerBotonera();
+    audioPunto.pause();
+    audioVictoria.pause();
+    ultimoRelato = Date.now();
+    const archivo = "sonidosRelator/" + clip.archivo + ".mp3";
+    audioRelator.src = archivo;
+    textoRelator.textContent = clip.texto;
+    audioRelator.play().catch((error) => {
+      if (error.name !== "AbortError" && audioRelator.getAttribute("src") === archivo) {
+        textoRelator.textContent = "No se pudo reproducir el relato.";
+      }
+    });
+  }
+
+  audioRelator.addEventListener("ended", () => { textoRelator.textContent = ""; });
+  audioRelator.addEventListener("error", () => {
+    textoRelator.textContent = "No se pudo cargar el audio del relator.";
+  });
+  btnRelator.addEventListener("click", () => {
+    estado.relator = !estado.relator;
+    if (!estado.relator) detenerRelator();
+    else {
+      estado.silenciado = false;
+      pintarBotonSonido();
+      if (estado.puntos.every((p) => p === 0)) relatar("inicio", true);
+    }
+    pintarRelator();
+    guardar();
+  });
+  pintarRelator();
 
 
   // ===================================================================
@@ -790,19 +893,20 @@
   let equipoAnimado = null;
 
   function render() {
+    document.getElementById("objetivo").value = String(estado.objetivo);
+    document.querySelector(".home-sub").textContent = "Truco · a " + estado.objetivo + " · con fosforitos";
     // En la versión pública siempre se dibujan fosforitos (sin estilo cigarro)
     const estiloActual = modoPrivado ? estado.icono : "fosforos";
     for (let e = 0; e < 2; e++) {
       const total = estado.puntos[e];
       document.getElementById("puntaje" + e).textContent = total;
 
-      // El juego es a 30, pero los fosforitos se dibujan de a 15.
-      // Malas: 0 a 15. Buenas: 16 a 30, dibujadas de nuevo desde 1.
-      const enBuenas = total > 15;
+      // En partidas a 30, los fosforitos vuelven a empezar al pasar de 15.
+      const enBuenas = estado.objetivo === 30 && total > 15;
       const visibles = enBuenas ? total - 15 : total; // 0..15 que se muestran
 
       const faseEl = document.getElementById("fase" + e);
-      faseEl.textContent = enBuenas ? "buenas" : "malas";
+      faseEl.textContent = estado.objetivo === 15 ? "a 15" : (enBuenas ? "buenas" : "malas");
       faseEl.classList.toggle("buenas", enBuenas);
 
       const cont = document.getElementById("cuadros" + e);
@@ -813,8 +917,10 @@
         html += '<div class="cuadro">' + svgCuadro(cant, equipoAnimado === e && esUltimoGrupo, estiloActual) + "</div>";
       }
       cont.innerHTML = html;
+      cont.setAttribute("aria-label", "Sumar un punto a " + estado.nombres[e]);
+      cont.disabled = hayGanador();
 
-      document.getElementById("mas" + e).disabled = total >= 30 || hayGanador();
+      document.getElementById("mas" + e).disabled = hayGanador();
       document.getElementById("menos" + e).disabled = total === 0;
     }
 
@@ -838,38 +944,96 @@
   }
 
   function ganador() {
-    if (estado.puntos[0] >= 30) return 0;
-    if (estado.puntos[1] >= 30) return 1;
+    if (estado.puntos[0] >= estado.objetivo) return 0;
+    if (estado.puntos[1] >= estado.objetivo) return 1;
     return null;
   }
   function hayGanador() { return ganador() !== null; }
 
   // ---- Acciones ----
   function cambiar(equipo, delta) {
+    if (delta > 0 && hayGanador()) return;
+    const nuevosPuntos = Math.max(0, Math.min(estado.objetivo, estado.puntos[equipo] + delta));
+    if (nuevosPuntos === estado.puntos[equipo]) return;
+    const puntosAntes = estado.puntos.slice();
+    detenerBotonera();
+    if (delta < 0) detenerRelator();
     estado.historial.push(estado.puntos.slice());
     if (estado.historial.length > 60) estado.historial.shift();
-    estado.puntos[equipo] = Math.max(0, Math.min(30, estado.puntos[equipo] + delta));
+    estado.puntos[equipo] = nuevosPuntos;
     equipoAnimado = delta > 0 ? equipo : null;
     if (delta > 0) {
       if (navigator.vibrate) navigator.vibrate(15);
       sonarPunto();
     }
     render();
+    if (delta > 0) {
+      const evento = RelatoTruco.elegir(puntosAntes, estado.puntos, equipo, estado.objetivo, estado.historial);
+      relatar(evento, evento === "ultimo" || evento === "buenas");
+    }
   }
 
   function deshacer() {
     if (estado.historial.length === 0) return;
+    detenerRelator();
+    audioPunto.pause();
+    audioVictoria.pause();
     estado.puntos = estado.historial.pop();
     render();
   }
 
   function nuevaPartida() {
+    pedirConfirmacion("¿Confirmás iniciar una nueva partida? Se borrarán los puntos actuales.", reiniciarPartida);
+  }
+
+  const confirmacion = document.getElementById("confirmacion");
+  let accionConfirmada = null;
+
+  function pedirConfirmacion(mensaje, accion) {
+    document.getElementById("mensajeConfirmacion").textContent = mensaje;
+    accionConfirmada = accion;
+    confirmacion.showModal();
+  }
+
+  document.getElementById("cancelarNueva").addEventListener("click", () => {
+    accionConfirmada = null;
+    confirmacion.close();
+  });
+  confirmacion.addEventListener("cancel", () => { accionConfirmada = null; });
+  document.getElementById("confirmarNueva").addEventListener("click", () => {
+    const accion = accionConfirmada;
+    accionConfirmada = null;
+    confirmacion.close();
+    if (accion) accion();
+  });
+
+  function reiniciarPartida() {
+    detenerRelator();
+    audioVictoria.pause();
+    ultimoRelato = 0;
     estado.puntos = [0, 0];
     estado.historial = [];
     render();
+    relatar("inicio", true);
   }
 
   // ---- Eventos ----
+  document.getElementById("cuadros0").addEventListener("click", () => cambiar(0, 1));
+  document.getElementById("cuadros1").addEventListener("click", () => cambiar(1, 1));
+  document.getElementById("objetivo").addEventListener("change", (evento) => {
+    const objetivo = Number(evento.target.value);
+    if (objetivo === estado.objetivo) return;
+    const cambiarObjetivo = () => {
+      estado.objetivo = objetivo;
+      reiniciarPartida();
+    };
+    if (estado.puntos.some((puntos) => puntos > 0) || estado.historial.length > 0) {
+      evento.target.value = String(estado.objetivo);
+      pedirConfirmacion("¿Iniciar una nueva partida a " + objetivo + " puntos? Se borrarán los puntos actuales.", cambiarObjetivo);
+      return;
+    }
+    cambiarObjetivo();
+  });
   document.getElementById("mas0").addEventListener("click", () => cambiar(0, 1));
   document.getElementById("menos0").addEventListener("click", () => cambiar(0, -1));
   document.getElementById("mas1").addEventListener("click", () => cambiar(1, 1));
@@ -897,6 +1061,7 @@
     input.value = estado.nombres[e];
     input.addEventListener("input", () => {
       estado.nombres[e] = input.value || (e === 0 ? "Nosotros" : "Ellos");
+      document.getElementById("cuadros" + e).setAttribute("aria-label", "Sumar un punto a " + estado.nombres[e]);
       guardar();
     });
   }
@@ -975,6 +1140,7 @@
   document.getElementById("home-logo").innerHTML = svgCuadro(5, false, "fosforos");
 
   function mostrarHome() {
+    detenerRelator();
     detenerBotonera();
     document.querySelector(".contenedor").scrollIntoView({ block: "start" });
     home.classList.remove("oculto");
@@ -984,6 +1150,7 @@
     modoPrivado = privado;
     home.classList.add("oculto");
     aplicarModo();
+    if (estado.puntos.every((p) => p === 0)) relatar("inicio", true);
   }
 
   function desbloquear() {
