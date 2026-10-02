@@ -127,12 +127,13 @@
   }
   body.maxpawer-activo .ir-sonidos { display: block; }
   .relator-controles { flex: 0 0 auto; text-align: center; margin-top: 8px; }
-  #btn-relator {
+  .relator-botones { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  #btn-relator, #btn-sonido-punto {
     border: 1px solid rgba(245,239,224,0.35); border-radius: 10px;
     padding: 6px 12px; color: #F5EFE0; background: transparent;
     font: 600 12px system-ui, sans-serif; cursor: pointer;
   }
-  #btn-relator[aria-pressed="true"] { background: #143D2B; border-color: #E9C893; }
+  #btn-relator[aria-pressed="true"], #btn-sonido-punto[aria-pressed="true"] { background: #143D2B; border-color: #E9C893; }
   #texto-relator { display: block; min-height: 2.6em; margin: 5px 0 0;
     font: 12px/1.3 system-ui, sans-serif; color: #E9C893; }
 
@@ -310,6 +311,9 @@
   @media (min-width: 520px) {
     .sonidos-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
+  @media (max-width: 519px) {
+    .relator-controles { padding-bottom: 56px; }
+  }
 </style>
 </head>
 <body>
@@ -372,7 +376,10 @@
   </div>
   <button class="ir-sonidos" id="ir-sonidos" type="button">Desliz&aacute; para sonidos &darr;</button>
   <div class="relator-controles">
-    <button type="button" id="btn-relator" aria-pressed="false">🎙 Activar relator</button>
+    <div class="relator-botones">
+      <button type="button" id="btn-relator" aria-pressed="false">🎙 Activar relator</button>
+      <button type="button" id="btn-sonido-punto" aria-pressed="true" aria-label="Desactivar sonido de punto (Malharry)">🔊 Malharry: activado</button>
+    </div>
     <span id="texto-relator" aria-live="polite"></span>
   </div>
 </div>
@@ -462,6 +469,7 @@
     historial: [],
     fondo: 0,
     silenciado: false,
+    sonidoPunto: true,
     relator: false,
     icono: "fosforos",
   };
@@ -700,7 +708,7 @@
   }
 
   function sonarPunto() {
-    if (!modoPrivado || estado.silenciado) return;
+    if (!modoPrivado || estado.silenciado || !estado.sonidoPunto) return;
     if (!audioRelator.paused) return;
     try {
       audioPunto.currentTime = 0;      // reiniciar por si suena rápido seguido
@@ -735,8 +743,28 @@
   const audioRelator = document.getElementById("audio-relator");
   const btnRelator = document.getElementById("btn-relator");
   const textoRelator = document.getElementById("texto-relator");
+  const btnSonidoPunto = document.getElementById("btn-sonido-punto");
   const turnosRelato = {};
-  let ultimoRelato = 0;
+  let relatoPendiente = null;
+  const agrupadorRelato = RelatoTruco.crearAgrupador((mano) => {
+    relatoPendiente = mano;
+    intentarRelatoPendiente();
+  });
+
+  function pintarSonidoPunto() {
+    btnSonidoPunto.setAttribute("aria-pressed", String(estado.sonidoPunto));
+    btnSonidoPunto.textContent = estado.sonidoPunto ? "🔊 Malharry: activado" : "🔇 Malharry: apagado";
+    btnSonidoPunto.setAttribute("aria-label", estado.sonidoPunto ?
+      "Desactivar sonido de punto (Malharry)" : "Activar sonido de punto (Malharry)");
+  }
+
+  btnSonidoPunto.addEventListener("click", () => {
+    estado.sonidoPunto = !estado.sonidoPunto;
+    if (!estado.sonidoPunto) audioPunto.pause();
+    pintarSonidoPunto();
+    guardar();
+  });
+  pintarSonidoPunto();
 
   function pintarRelator() {
     btnRelator.setAttribute("aria-pressed", String(estado.relator));
@@ -744,25 +772,38 @@
   }
 
   function detenerRelator() {
+    agrupadorRelato.anular();
+    relatoPendiente = null;
     audioRelator.pause();
     textoRelator.textContent = "";
   }
 
+  function intentarRelatoPendiente() {
+    if (!relatoPendiente || agrupadorRelato.hayPendiente()) return;
+    const mano = relatoPendiente;
+    if (!estado.relator || estado.silenciado || hayGanador() ||
+        mano.despues.some((puntos, e) => puntos !== estado.puntos[e])) {
+      relatoPendiente = null;
+      return;
+    }
+    const evento = RelatoTruco.elegir(mano.antes, mano.despues, mano.equipo, estado.objetivo, mano.historial);
+    if (relatar(evento, evento === "ultimo" || evento === "buenas")) relatoPendiente = null;
+  }
+
   function relatar(evento, prioritario = false) {
-    if (!estado.relator || estado.silenciado || !evento) return;
-    // No acumular relatos atrasados ni interrumpir frases por cada toque.
-    if (!prioritario && (!audioRelator.paused || Date.now() - ultimoRelato < 3500)) return;
+    if (!estado.relator || estado.silenciado || !evento) return true;
+    // Si hay una frase sonando, esperar a que termine. Nuevos puntos reemplazan el relato pendiente.
+    if (!prioritario && !audioRelator.paused) return false;
     const opciones = evento === "empate" ? ["empate", "partidazo"] :
       (evento === "inicio" && estado.objetivo === 30 ? ["inicio30", "inicio"] : [evento]);
     const turno = turnosRelato[evento] || 0;
     const clip = RelatoTruco.clips[opciones[turno % opciones.length]];
-    if (!clip) return;
+    if (!clip) return true;
     turnosRelato[evento] = turno + 1;
     detenerRelator();
     detenerBotonera();
     audioPunto.pause();
     audioVictoria.pause();
-    ultimoRelato = Date.now();
     const archivo = "sonidosRelator/" + clip.archivo + ".mp3";
     audioRelator.src = archivo;
     textoRelator.textContent = clip.texto;
@@ -771,9 +812,13 @@
         textoRelator.textContent = "No se pudo reproducir el relato.";
       }
     });
+    return true;
   }
 
-  audioRelator.addEventListener("ended", () => { textoRelator.textContent = ""; });
+  audioRelator.addEventListener("ended", () => {
+    textoRelator.textContent = "";
+    intentarRelatoPendiente();
+  });
   audioRelator.addEventListener("error", () => {
     textoRelator.textContent = "No se pudo cargar el audio del relator.";
   });
@@ -958,6 +1003,7 @@
     const puntosAntes = estado.puntos.slice();
     detenerBotonera();
     if (delta < 0) detenerRelator();
+    else relatoPendiente = null;
     estado.historial.push(estado.puntos.slice());
     if (estado.historial.length > 60) estado.historial.shift();
     estado.puntos[equipo] = nuevosPuntos;
@@ -967,9 +1013,8 @@
       sonarPunto();
     }
     render();
-    if (delta > 0) {
-      const evento = RelatoTruco.elegir(puntosAntes, estado.puntos, equipo, estado.objetivo, estado.historial);
-      relatar(evento, evento === "ultimo" || evento === "buenas");
+    if (delta > 0 && !hayGanador() && estado.relator && !estado.silenciado) {
+      agrupadorRelato.sumar(puntosAntes, estado.puntos, equipo, estado.historial);
     }
   }
 
@@ -990,6 +1035,7 @@
   let accionConfirmada = null;
 
   function pedirConfirmacion(mensaje, accion) {
+    detenerRelator();
     document.getElementById("mensajeConfirmacion").textContent = mensaje;
     accionConfirmada = accion;
     confirmacion.showModal();
@@ -1010,7 +1056,6 @@
   function reiniciarPartida() {
     detenerRelator();
     audioVictoria.pause();
-    ultimoRelato = 0;
     estado.puntos = [0, 0];
     estado.historial = [];
     render();

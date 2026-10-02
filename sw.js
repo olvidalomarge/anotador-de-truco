@@ -1,4 +1,4 @@
-const CACHE = "truco-v16";
+const CACHE = "truco-v17";
 // Los fondos NO se listan acá: la lista es dinámica (carpeta "fondos/") y
 // se cachean solos la primera vez que se muestran. Si se listara un archivo
 // que ya no existe, la instalación del service worker fallaría entera.

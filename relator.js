@@ -3,7 +3,7 @@ const RelatoTruco = (() => {
   const clips = {
     inicio30: { archivo: "inicio-30", texto: "¡Está todo listo! Arranca el partido a treinta." },
     inicio: { archivo: "inicio", texto: "¡Se mezclan las cartas! ¡Arranca el truco!" },
-    uno: { archivo: "un-punto", texto: "¡Un puntito nomás! ¡Más miedo que cartas!" },
+    uno: { archivo: "un-punto", texto: "¡Un puntito nomás! ¡Más miedo que cartas!", cantidad: 1 },
     cuatro: { archivo: "cuatro-puntos", texto: "¡Llegan a cuatro puntos! ¡Se mueve el tanteador!" },
     empate: { archivo: "empate", texto: "¡Palo y palo!" },
     partidazo: { archivo: "partidazo", texto: "¡Qué partidazo! ¡El marcador no da respiro!" },
@@ -32,9 +32,43 @@ const RelatoTruco = (() => {
     if (diferencia === -1 && diferenciaAnterior <= -2) return "volvieron";
     if (diferencia === -3 && diferenciaAnterior <= -4) return "descuentan";
     if (puntos === 4) return "cuatro";
-    if (puntos === 1) return "uno";
+    // Los clips por cantidad describen lo sumado en esta mano, no el total.
+    const cantidad = puntos - antes[equipo];
+    const porCantidad = Object.keys(clips).find((nombre) => clips[nombre].cantidad === cantidad);
+    if (porCantidad) return porCantidad;
     return null;
   }
 
-  return { clips, elegir };
+  function crearAgrupador(alResolver, {
+    esperaMs = 1500,
+    programar = setTimeout,
+    cancelar = clearTimeout,
+  } = {}) {
+    let temporizador = null;
+    let mano = null;
+
+    function anular() {
+      if (temporizador !== null) cancelar(temporizador);
+      temporizador = null;
+      mano = null;
+    }
+
+    function sumar(antes, despues, equipo, historial) {
+      if (!mano) mano = { antes: antes.slice() };
+      mano.despues = despues.slice();
+      mano.equipo = equipo;
+      mano.historial = historial.map((puntos) => puntos.slice());
+      if (temporizador !== null) cancelar(temporizador);
+      temporizador = programar(() => {
+        const completa = mano;
+        mano = null;
+        temporizador = null;
+        alResolver(completa);
+      }, esperaMs);
+    }
+
+    return { sumar, anular, hayPendiente: () => mano !== null };
+  }
+
+  return { clips, elegir, crearAgrupador };
 })();
