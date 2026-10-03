@@ -27,10 +27,12 @@
   }
   body.maxpawer-activo {
     overflow-y: auto;
+    padding: 0;
+  }
+  html.maxpawer-activo {
     overscroll-behavior-y: contain;
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
-    padding: 0;
   }
   .contenedor {
     max-width: 460px; margin: 0 auto;
@@ -245,6 +247,7 @@
     box-shadow: 0 3px 12px rgba(0,0,0,0.4);
   }
   #btn-fondo:active { transform: scale(0.92); }
+  #btn-fondo.oculto { display: none; }
   #btn-fullscreen {
     position: fixed; z-index: 5;
     left: calc(10px + env(safe-area-inset-left));
@@ -311,8 +314,52 @@
   @media (min-width: 520px) {
     .sonidos-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
-  @media (max-width: 519px) {
-    .relator-controles { padding-bottom: 56px; }
+  @media (max-width: 519px), (hover: none) and (pointer: coarse), (orientation: landscape) and (max-height: 519px) and (max-width: 932px) {
+    html { scrollbar-width: none; }
+    html::-webkit-scrollbar { display: none; }
+    /* El cambio de fondo conserva una alternativa para teclado y lectores de pantalla. */
+    #btn-fondo { width: 1px; height: 1px; padding: 0; border: 0; clip-path: inset(50%); overflow: hidden; }
+    #btn-fondo:focus-visible { width: 44px; height: 44px; clip-path: none; border: 1px solid rgba(245,239,224,0.4); }
+    .contenedor { max-width: 100%; touch-action: pan-y pinch-zoom; }
+    header { gap: 8px; }
+    h1 { font-size: clamp(17px, 5vw, 21px); }
+    .herramientas { gap: 6px !important; }
+    .meta-objetivo { min-height: 40px; padding: 6px 9px; }
+    #btn-icono { width: 36px; height: 40px; }
+    #btn-fullscreen {
+      position: static; flex: 0 0 36px; width: 36px; height: 40px;
+      border-radius: 9px; font-size: 20px; box-shadow: none;
+    }
+    .cuadro {
+      max-width: min(176px, calc((100vw - 45px) / 2));
+      max-height: min(176px, calc((100vw - 45px) / 2));
+    }
+    .btn-mas { max-width: none; }
+    .acciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .acciones button { min-height: 44px; padding: 8px 4px; font-size: 12px; }
+    .relator-controles { padding-bottom: 0; margin-top: 8px; }
+    .relator-controles:not(.relator-activo) #texto-relator { display: none; }
+    .relator-botones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    #btn-relator, #btn-sonido-punto {
+      min-height: 44px; padding: 6px 4px;
+      font-size: clamp(10px, 3vw, 12px); line-height: 1.3;
+    }
+  }
+  @media (max-height: 600px) and (max-width: 519px) {
+    header { margin-bottom: 4px; }
+    .controles, .acciones { margin-top: 6px; }
+    .relator-controles { margin-top: 6px; }
+  }
+  @media (orientation: landscape) and (max-height: 519px) and (max-width: 932px) {
+    .cuadros { flex-direction: row; container-type: size; }
+    .cuadro {
+      flex: 0 0 auto;
+      width: min(100cqh, calc((100cqw - 12px) / 3), 176px);
+      height: min(100cqh, calc((100cqw - 12px) / 3), 176px);
+      max-width: 100%; max-height: 100%;
+    }
+    .controles, .acciones { margin-top: 6px; }
+    .relator-controles { margin-top: 6px; }
   }
 </style>
 </head>
@@ -329,14 +376,14 @@
 <div id="capa-fondo"></div>
 <div id="capa-oscura"></div>
 <button id="btn-fondo" aria-label="Cambiar fondo">→</button>
-<button id="btn-fullscreen" aria-label="Pantalla completa">⛶</button>
 <div class="contenedor">
   <header>
     <div style="display: flex; align-items: center; gap: 4px;">
       <h1>Anotador</h1>
       <button id="btn-sonido" aria-label="Silenciar sonido">🔊</button>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="herramientas" style="display: flex; align-items: center; gap: 8px;">
+      <button id="btn-fullscreen" aria-label="Pantalla completa">⛶</button>
       <button id="btn-icono" aria-label="Cambiar estilo de los puntos"></button>
       <select class="meta-objetivo" id="objetivo" aria-label="Puntos para ganar">
         <option value="15">a 15</option>
@@ -434,6 +481,7 @@
 </dialog>
 
 <script src="relator.js?v=19"></script>
+<script src="gestos.js?v=20"></script>
 <script>
 (function () {
   // ===================================================================
@@ -524,29 +572,43 @@
   // ---- Fondo de pantalla ----
   const capaFondo = document.getElementById("capa-fondo");
   const btnFondo = document.getElementById("btn-fondo");
+  let cambioFondo = 0;
 
   function aplicarFondo() {
     if (FONDOS.length === 0) { capaFondo.style.backgroundImage = "none"; return; }
     if (estado.fondo >= FONDOS.length) estado.fondo = 0;
     // Pre-carga para evitar parpadeo
+    const fondo = FONDOS[estado.fondo];
+    const cambio = ++cambioFondo;
     const img = new Image();
     img.onload = () => {
+      if (cambio !== cambioFondo || !modoPrivado) return;
       capaFondo.style.opacity = "0";
       setTimeout(() => {
-        capaFondo.style.backgroundImage = 'url("' + FONDOS[estado.fondo] + '")';
+        if (cambio !== cambioFondo || !modoPrivado) return;
+        capaFondo.style.backgroundImage = 'url("' + fondo + '")';
         capaFondo.style.opacity = "1";
       }, 180);
     };
-    img.src = FONDOS[estado.fondo];
+    img.src = fondo;
   }
 
-  function siguienteFondo() {
-    estado.fondo = (estado.fondo + 1) % FONDOS.length;
+  function cambiarFondo(direccion) {
+    if (!modoPrivado || FONDOS.length <= 1) return;
+    estado.fondo = (estado.fondo + direccion + FONDOS.length) % FONDOS.length;
     aplicarFondo();
     guardar();
   }
 
-  btnFondo.addEventListener("click", siguienteFondo);
+  btnFondo.addEventListener("click", () => cambiarFondo(1));
+  const interfazMobile = window.matchMedia("(max-width: 519px), (hover: none) and (pointer: coarse), (orientation: landscape) and (max-height: 519px) and (max-width: 932px)");
+  GestosFondo.instalar(document.querySelector(".contenedor"), {
+    habilitado: () => interfazMobile.matches && modoPrivado && FONDOS.length > 1 &&
+      document.getElementById("home").classList.contains("oculto") &&
+      document.getElementById("velo").classList.contains("oculto") &&
+      !document.getElementById("confirmacion").open,
+    cambiar: cambiarFondo,
+  });
   // El fondo inicial lo aplica aplicarModo() al final, según el modo activo.
 
   // ---- Pantalla completa ----
@@ -769,6 +831,7 @@
   pintarSonidoPunto();
 
   function pintarRelator() {
+    document.querySelector(".relator-controles").classList.toggle("relator-activo", estado.relator);
     btnRelator.setAttribute("aria-pressed", String(estado.relator));
     btnRelator.textContent = estado.relator ? "🎙 Desactivar relator" : "🎙 Activar relator";
   }
@@ -1115,7 +1178,10 @@
 
   // ---- Modo privado: aplicar y activar ----
   function aplicarModo() {
+    cambioFondo++;
+    capaFondo.style.opacity = "1";
     document.body.classList.toggle("maxpawer-activo", modoPrivado);
+    document.documentElement.classList.toggle("maxpawer-activo", modoPrivado);
     btnFondo.classList.toggle("oculto", !modoPrivado || FONDOS.length <= 1);
     btnSonido.classList.toggle("oculto", !modoPrivado);
     btnIcono.classList.toggle("oculto", !modoPrivado);
@@ -1151,7 +1217,7 @@
         FONDOS = imgs;
         try { localStorage.setItem(CLAVE_FONDOS, JSON.stringify(imgs)); } catch (e) { /* sin espacio */ }
         if (estado.fondo >= FONDOS.length) estado.fondo = 0;
-        aplicarModo(); // refresca el fondo actual y la visibilidad del botón →
+        aplicarModo(); // refresca el fondo y la disponibilidad del cambio
       })
       .catch(() => { /* sin red o sin carpeta: se sigue con la lista conocida */ });
   }
