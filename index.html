@@ -653,52 +653,29 @@
   const audioBotonera = document.getElementById("audio-botonera");
   const sonidosGrid = document.getElementById("sonidos-grid");
   const btnSonido = document.getElementById("btn-sonido");
-  const CLAVE_SONIDOS = "anotador-truco-sonidos-botonera-v1";
-  const ARCHIVOS_SONIDOS_RESPALDO = [
-    "BenzemaAaAaAaAa !!!.mp3",
-    "br.ogg",
-    "brrrr.ogg",
-    "Caño de Cerutti a Ponzio. San Lorenzo 2 River 1..mp3",
-    "diferencia.mp3",
-    "full chamba.mp3",
-    "game over.mp3",
-    "hee-hee-made-with-Voicemod.mp3",
-    "keke.ogg",
-    "labestiapop.mp3",
-    "malharry.ogg",
-    "Narración de Mariano Closs Gol de Italia Último Minuto.mp3",
-    "negro tecla.ogg",
-    "no tenes cara.mp3",
-    "no voy a llegar.ogg",
-    "preparate.mp3",
-    "Redoble De Tambores - Efecto De Sonido.mp3",
-    "Si Llega el Finde.mp3",
-    "sueldo minimo 2.mp3",
-    "sueldo minimo.mp3",
-    "wachinanga.mp3",
+  const ARCHIVOS_SONIDOS = [
+    { archivo: "OMG.mp3", nombre: "OMG" },
+    { archivo: "What The Hell.mp3", nombre: "WHAT THE HELL" },
+    { archivo: "keke.ogg", nombre: "KEKE" },
   ];
   const TIPOS_AUDIO = {
     m4a: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
     ogg: "audio/ogg", aac: "audio/aac",
   };
-  const SONIDOS_RESPALDO = ARCHIVOS_SONIDOS_RESPALDO.map(crearSonidoDesdeArchivo).filter(Boolean);
-  let SONIDOS = SONIDOS_RESPALDO;
-  try {
-    const listaSonidos = JSON.parse(localStorage.getItem(CLAVE_SONIDOS));
-    if (Array.isArray(listaSonidos) && listaSonidos.length) SONIDOS = listaSonidos;
-  } catch (e) { /* se queda el respaldo */ }
+  const SONIDOS = ARCHIVOS_SONIDOS.map((sonido) => crearSonidoDesdeArchivo(sonido.archivo, sonido.nombre));
+  try { localStorage.removeItem("anotador-truco-sonidos-botonera-v1"); } catch (e) { /* sin storage */ }
 
   function nombreSonido(id) {
     const limpio = id.replace(/[-_]+/g, " ").trim();
     return limpio ? limpio.charAt(0).toUpperCase() + limpio.slice(1) : "Sonido";
   }
 
-  function crearSonidoDesdeArchivo(nombreArchivo) {
+  function crearSonidoDesdeArchivo(nombreArchivo, nombre) {
     const match = nombreArchivo.match(/^(.+)\.(m4a|mp3|wav|ogg|aac)$/i);
     if (!match) return null;
     return {
       id: nombreArchivo,
-      nombre: nombreSonido(match[1]),
+      nombre: nombre || nombreSonido(match[1]),
       archivos: [{
         url: "sonidosBotonera/" + encodeURIComponent(nombreArchivo),
         ext: match[2].toLowerCase(),
@@ -1222,30 +1199,6 @@
       .catch(() => { /* sin red o sin carpeta: se sigue con la lista conocida */ });
   }
   descubrirFondos();
-
-  // Cada archivo de sonidosBotonera/ produce exactamente un boton.
-  function descubrirSonidos() {
-    const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
-    if (!m) return;
-    const usuario = m[1];
-    const repo = location.pathname.split("/")[1] || (usuario + ".github.io");
-    const url = "https://api.github.com/repos/" + usuario + "/" + repo + "/contents/sonidosBotonera";
-    fetch(url, { cache: "no-cache" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((archivos) => {
-        const descubiertos = archivos
-          .filter((archivo) => archivo.type === "file")
-          .map((archivo) => crearSonidoDesdeArchivo(archivo.name))
-          .filter(Boolean)
-          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-        if (!descubiertos.length) return;
-        SONIDOS = descubiertos;
-        try { localStorage.setItem(CLAVE_SONIDOS, JSON.stringify(SONIDOS)); } catch (e) { /* sin espacio */ }
-        renderBotonera();
-      })
-      .catch(() => { /* sin red: se usa la lista guardada o el respaldo */ });
-  }
-  descubrirSonidos();
 
   // ---- Home ----
   const home = document.getElementById("home");

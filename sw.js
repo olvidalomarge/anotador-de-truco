@@ -1,13 +1,16 @@
-const CACHE = "truco-v20";
+const CACHE = "truco-v21";
 // Los fondos NO se listan acá: la lista es dinámica (carpeta "fondos/") y
 // se cachean solos la primera vez que se muestran. Si se listara un archivo
 // que ya no existe, la instalación del service worker fallaría entera.
-// Lo mismo vale para "sonidosBotonera/": cada audio se cachea al reproducirlo.
+// La botonera tiene tres audios fijos, incluidos para usarlos sin conexión.
 const ARCHIVOS = [
   "./",
   "./index.html",
   "./relator.js?v=19",
   "./gestos.js?v=20",
+  "./sonidosBotonera/OMG.mp3",
+  "./sonidosBotonera/What%20The%20Hell.mp3",
+  "./sonidosBotonera/keke.ogg",
   "./sonidosRelator/inicio-30.mp3",
   "./sonidosRelator/inicio.mp3",
   "./sonidosRelator/un-punto.mp3",
