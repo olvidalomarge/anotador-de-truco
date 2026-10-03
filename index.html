@@ -433,7 +433,7 @@
   </div>
 </dialog>
 
-<script src="relator.js"></script>
+<script src="relator.js?v=19"></script>
 <script>
 (function () {
   // ===================================================================
@@ -744,9 +744,11 @@
   const btnRelator = document.getElementById("btn-relator");
   const textoRelator = document.getElementById("texto-relator");
   const btnSonidoPunto = document.getElementById("btn-sonido-punto");
-  const turnosRelato = {};
+  const variantesRelato = RelatoTruco.crearVariador();
+  let memoriaRelato = RelatoTruco.crearMemoria(estado.puntos, estado.objetivo);
   let relatoPendiente = null;
   const agrupadorRelato = RelatoTruco.crearAgrupador((mano) => {
+    memoriaRelato.manos++;
     relatoPendiente = mano;
     intentarRelatoPendiente();
   });
@@ -786,20 +788,19 @@
       relatoPendiente = null;
       return;
     }
-    const evento = RelatoTruco.elegir(mano.antes, mano.despues, mano.equipo, estado.objetivo, mano.historial);
-    if (relatar(evento, evento === "ultimo" || evento === "buenas")) relatoPendiente = null;
+    const evento = RelatoTruco.elegir(mano.antes, mano.despues, mano.equipo, estado.objetivo, mano.historial, memoriaRelato);
+    if (relatar(evento, evento === "ultimo" || evento === "buenas")) {
+      RelatoTruco.registrar(evento, memoriaRelato);
+      relatoPendiente = null;
+    }
   }
 
   function relatar(evento, prioritario = false) {
     if (!estado.relator || estado.silenciado || !evento) return true;
     // Si hay una frase sonando, esperar a que termine. Nuevos puntos reemplazan el relato pendiente.
     if (!prioritario && !audioRelator.paused) return false;
-    const opciones = evento === "empate" ? ["empate", "partidazo"] :
-      (evento === "inicio" && estado.objetivo === 30 ? ["inicio30", "inicio"] : [evento]);
-    const turno = turnosRelato[evento] || 0;
-    const clip = RelatoTruco.clips[opciones[turno % opciones.length]];
+    const clip = RelatoTruco.clips[variantesRelato.siguiente(evento, estado.objetivo)];
     if (!clip) return true;
-    turnosRelato[evento] = turno + 1;
     detenerRelator();
     detenerBotonera();
     audioPunto.pause();
@@ -1058,6 +1059,7 @@
     audioVictoria.pause();
     estado.puntos = [0, 0];
     estado.historial = [];
+    memoriaRelato = RelatoTruco.crearMemoria();
     render();
     relatar("inicio", true);
   }

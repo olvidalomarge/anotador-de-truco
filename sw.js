@@ -1,4 +1,4 @@
-const CACHE = "truco-v18";
+const CACHE = "truco-v19";
 // Los fondos NO se listan acá: la lista es dinámica (carpeta "fondos/") y
 // se cachean solos la primera vez que se muestran. Si se listara un archivo
 // que ya no existe, la instalación del service worker fallaría entera.
@@ -6,7 +6,7 @@ const CACHE = "truco-v18";
 const ARCHIVOS = [
   "./",
   "./index.html",
-  "./relator.js",
+  "./relator.js?v=19",
   "./sonidosRelator/inicio-30.mp3",
   "./sonidosRelator/inicio.mp3",
   "./sonidosRelator/un-punto.mp3",
@@ -20,6 +20,20 @@ const ARCHIVOS = [
   "./sonidosRelator/buenas.mp3",
   "./sonidosRelator/recta-final.mp3",
   "./sonidosRelator/ultimo-punto.mp3",
+  "./sonidosRelator/primeros-ellos.mp3",
+  "./sonidosRelator/un-punto-jubilado.mp3",
+  "./sonidosRelator/un-punto-amague.mp3",
+  "./sonidosRelator/dos-puntos.mp3",
+  "./sonidosRelator/tres-puntos.mp3",
+  "./sonidosRelator/cuatro-de-una.mp3",
+  "./sonidosRelator/cuatro-redondita.mp3",
+  "./sonidosRelator/empate-normal.mp3",
+  "./sonidosRelator/empate-otra-vez.mp3",
+  "./sonidosRelator/empate-diferencia.mp3",
+  "./sonidosRelator/cinco-a-cinco.mp3",
+  "./sonidosRelator/escapan.mp3",
+  "./sonidosRelator/a-tiro.mp3",
+  "./sonidosRelator/remontada-fuerte.mp3",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
